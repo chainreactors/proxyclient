@@ -2,6 +2,10 @@
 
 一个功能强大的代理客户端库，支持多种代理协议。本项目重构自 [github.com/RouterScript/ProxyClient](https://github.com/RouterScript/ProxyClient)。
 
+blog posts:
+
+- https://chainreactors.github.io/wiki/blog/2025/02/14/proxyclient-introduce/
+
 ## 支持的协议
 
 - [x] Direct - 直连模式
