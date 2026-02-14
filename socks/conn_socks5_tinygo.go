@@ -1,4 +1,4 @@
-//go:build !tinygo
+//go:build tinygo
 
 package socksproxy
 
@@ -8,7 +8,6 @@ import (
 	"context"
 	"io"
 	"net"
-	"syscall"
 )
 
 type socks5Conn struct {
@@ -161,11 +160,6 @@ func (c *socks5Conn) sendReplyWithError(request *socks5Request, err error) bool 
 		case "dial":
 			c.sendReply(request, socks5StatusHostUnreachable)
 		case "read":
-			c.sendReply(request, socks5StatusConnectionRefused)
-		}
-	case syscall.Errno:
-		switch err {
-		case syscall.ECONNREFUSED:
 			c.sendReply(request, socks5StatusConnectionRefused)
 		}
 	default:

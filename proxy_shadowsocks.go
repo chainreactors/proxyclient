@@ -1,3 +1,5 @@
+//go:build !tinygo
+
 package proxyclient
 
 import (
@@ -9,6 +11,11 @@ import (
 
 	ss "github.com/shadowsocks/go-shadowsocks2/core"
 )
+
+func init() {
+	RegisterScheme("SS", newShadowsocksProxyClient)
+	RegisterScheme("SHADOWSOCKS", newShadowsocksProxyClient)
+}
 
 // buildSSAddr 构造 Shadowsocks 请求头
 // 格式: ATYP + DST.ADDR + DST.PORT

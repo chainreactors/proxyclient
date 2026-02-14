@@ -1,9 +1,8 @@
-//go:build !tinygo
+//go:build tinygo
 
 package httpproxy
 
 import (
-	"context"
 	"errors"
 	"io"
 	"net"
@@ -91,11 +90,6 @@ func (h Handler) handleNormal(writer http.ResponseWriter, request *http.Request)
 func (h Handler) request(request *http.Request) (*http.Response, error) {
 	if h.client == nil {
 		h.client = &http.Client{
-			Transport: &http.Transport{
-				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-					return h.Dial(network, addr)
-				},
-			},
 			CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return nil },
 		}
 	}

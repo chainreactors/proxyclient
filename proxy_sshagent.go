@@ -1,3 +1,5 @@
+//go:build !tinygo
+
 package proxyclient
 
 import (
@@ -9,6 +11,10 @@ import (
 
 	"golang.org/x/crypto/ssh"
 )
+
+func init() {
+	RegisterScheme("SSH", newSSHProxyClient)
+}
 
 type sshClientCache struct {
 	sync.RWMutex

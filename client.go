@@ -15,18 +15,6 @@ type DialFactory func(*url.URL, Dial) (Dial, error)
 var DefaultDial = (&net.Dialer{}).DialContext
 var schemes = map[string]DialFactory{}
 
-func init() {
-	RegisterScheme("DIRECT", newDirectProxyClient)
-	RegisterScheme("REJECT", newRejectProxyClient)
-	RegisterScheme("BLACKHOLE", newBlackholeProxyClient)
-	RegisterScheme("SOCKS", newSocksProxyClient)
-	RegisterScheme("SOCKS4", newSocksProxyClient)
-	RegisterScheme("SOCKS4A", newSocksProxyClient)
-	RegisterScheme("SOCKS5", newSocksProxyClient)
-	RegisterScheme("SOCKS5+TLS", newSocksProxyClient)
-	RegisterScheme("HTTP", newHTTPProxyClient)
-	RegisterScheme("HTTPS", newHTTPProxyClient)
-}
 
 func NewClient(proxy *url.URL) (Dial, error) {
 	return NewClientWithDial(proxy, DefaultDial)

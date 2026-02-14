@@ -13,7 +13,15 @@ import (
 )
 
 func init() {
-
+	RegisterScheme("DIRECT", newDirectProxyClient)
+	RegisterScheme("REJECT", newRejectProxyClient)
+	RegisterScheme("SOCKS", newSocksProxyClient)
+	RegisterScheme("SOCKS4", newSocksProxyClient)
+	RegisterScheme("SOCKS4A", newSocksProxyClient)
+	RegisterScheme("SOCKS5", newSocksProxyClient)
+	RegisterScheme("SOCKS5+TLS", newSocksProxyClient)
+	RegisterScheme("HTTP", newHTTPProxyClient)
+	RegisterScheme("HTTPS", newHTTPProxyClient)
 }
 
 func newDirectProxyClient(proxy *url.URL, _ Dial) (dial Dial, err error) {

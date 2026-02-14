@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/url"
 	"strings"
@@ -92,15 +91,11 @@ func (c *Socks4Client) isSOCKS4() bool {
 }
 
 func (c *Socks4Client) lookupIP(host string) (ip net.IP, err error) {
-	ips, err := net.LookupIP(host)
+	addr, err := net.ResolveTCPAddr("tcp4", host+":0")
 	if err != nil {
 		return
 	}
-	if len(ips) == 0 {
-		err = fmt.Errorf("Cannot resolve host: %s.", host)
-		return
-	}
-	ip = ips[0]
+	ip = addr.IP
 	if !isIPv4(ip) {
 		err = errors.New("IPv6 is not supported by SOCKS4.")
 		return

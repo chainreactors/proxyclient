@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+func init() {
+	RegisterScheme("BLACKHOLE", newBlackholeProxyClient)
+}
+
 func newBlackholeProxyClient(_ *url.URL, _ Dial) (dial Dial, err error) {
 	dial = func(ctx context.Context, network, address string) (net.Conn, error) {
 		return blackholeConn{}, nil
