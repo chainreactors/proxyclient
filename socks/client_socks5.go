@@ -21,19 +21,32 @@ func (c *Socks5Client) Dial(ctx context.Context, network, address string) (remot
 	if err != nil {
 		return
 	}
+	targetAddr := &socks5Addr{
+		addrType: socks5AddressTypeFQDN,
+		addr:     append([]byte{byte(len(host))}, host...),
+		port:     port,
+	}
 	request := &socks5Request{
-		version: socks5version,
-		socks5Addr: &socks5Addr{
-			addrType: socks5AddressTypeFQDN,
-			addr:     append([]byte{byte(len(host))}, host...),
-			port:     port,
-		},
+		version:    socks5version,
+		socks5Addr: targetAddr,
 	}
 	if request.command, err = c.commandByNetwork(network); err != nil {
 		return
 	}
 
-	if remoteConn, err = c.conf.Dial(ctx, network, c.proxy.Host); err != nil {
+	// For UDP ASSOCIATE, DST.ADDR in the request indicates the client's expected
+	// source address for UDP packets, NOT the target. Use 0.0.0.0:0 per RFC 1928
+	// to indicate "any". The actual target is specified per-datagram in the UDP header.
+	if request.command == commandUDPAssociate {
+		request.socks5Addr = &socks5Addr{
+			addrType: socks5AddressTypeIPv4,
+			addr:     net.IPv4zero.To4(),
+			port:     []byte{0, 0},
+		}
+	}
+
+	// SOCKS5 control connection is always TCP, regardless of the requested network.
+	if remoteConn, err = c.conf.Dial(ctx, "tcp", c.proxy.Host); err != nil {
 		return
 	}
 	if c.isTLS() {
@@ -54,7 +67,7 @@ func (c *Socks5Client) Dial(ctx context.Context, network, address string) (remot
 	case commandConnect:
 		err = c.handleConnect(remoteConn)
 	case commandUDPAssociate:
-		err = c.handleUDPAssociate(remoteConn)
+		remoteConn, err = c.handleUDPAssociate(remoteConn, targetAddr)
 	}
 	return
 }
@@ -164,20 +177,67 @@ func (c *Socks5Client) handleConnect(conn net.Conn) (err error) {
 	return
 }
 
-func (c *Socks5Client) handleUDPAssociate(conn net.Conn) (err error) {
-	reader := bufio.NewReader(conn)
-	// skip reserved
-	if _, err = reader.Discard(2); err != nil {
-		return
+func (c *Socks5Client) handleUDPAssociate(tcpConn net.Conn, targetAddr *socks5Addr) (net.Conn, error) {
+	// Parse the SOCKS5 reply: VER, REP, RSV, ATYP, BND.ADDR, BND.PORT
+	reader := bufio.NewReader(tcpConn)
+	version, err := reader.ReadByte()
+	if err != nil {
+		tcpConn.Close()
+		return nil, err
 	}
-	// skip fragment
+	if version != socks5version {
+		tcpConn.Close()
+		return nil, errVersionError
+	}
+	status, err := reader.ReadByte()
+	if err != nil {
+		tcpConn.Close()
+		return nil, err
+	}
+	if status != 0 {
+		tcpConn.Close()
+		return nil, errors.New("SOCKS5 UDP ASSOCIATE failed")
+	}
+	// skip RSV
 	if _, err = reader.Discard(1); err != nil {
-		return
+		tcpConn.Close()
+		return nil, err
 	}
-	if _, err = readSocks5Addr(reader); err != nil {
-		return
+	// read BND.ADDR + BND.PORT (the relay address)
+	relayAddr, err := readSocks5Addr(reader)
+	if err != nil {
+		tcpConn.Close()
+		return nil, err
 	}
-	return
+
+	// If the relay returned 0.0.0.0 or [::], use the proxy server's IP instead.
+	relayIP := net.IP(relayAddr.addr)
+	if relayIP.IsUnspecified() {
+		proxyHost, _, _ := net.SplitHostPort(c.proxy.Host)
+		if ip := net.ParseIP(proxyHost); ip != nil {
+			relayAddr.addr = ip
+			if isIPv4(ip) {
+				relayAddr.addrType = socks5AddressTypeIPv4
+				relayAddr.addr = ip.To4()
+			} else {
+				relayAddr.addrType = socks5AddressTypeIPv6
+			}
+		}
+	}
+
+	// Resolve the relay address and open a local UDP socket connected to it.
+	relayUDPAddr, err := net.ResolveUDPAddr("udp", relayAddr.Address())
+	if err != nil {
+		tcpConn.Close()
+		return nil, err
+	}
+	udpConn, err := net.DialUDP("udp", nil, relayUDPAddr)
+	if err != nil {
+		tcpConn.Close()
+		return nil, err
+	}
+
+	return newSocks5UDPConn(udpConn, tcpConn, targetAddr), nil
 }
 
 func (c *Socks5Client) isTLS() bool {

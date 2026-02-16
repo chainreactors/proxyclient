@@ -165,16 +165,20 @@ func (request *socks5Request) ToPacket() []byte {
 	return packet
 }
 
-func (request *socks5Request) Address() string {
+func (a *socks5Addr) Address() string {
 	var host string
-	switch request.addrType {
+	switch a.addrType {
 	case socks5AddressTypeIPv4, socks5AddressTypeIPv6:
-		host = net.IP(request.addr).String()
+		host = net.IP(a.addr).String()
 	case socks5AddressTypeFQDN:
-		host = string(request.addr)
+		host = string(a.addr)
 	}
-	port := strconv.Itoa(int(binary.BigEndian.Uint16(request.port)))
+	port := strconv.Itoa(int(binary.BigEndian.Uint16(a.port)))
 	return net.JoinHostPort(host, port)
+}
+
+func (request *socks5Request) Address() string {
+	return request.socks5Addr.Address()
 }
 
 func readSocks5Request(conn net.Conn) (request *socks5Request, err error) {

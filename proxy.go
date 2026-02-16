@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	httpProxy "github.com/chainreactors/proxyclient/http"
@@ -69,6 +70,10 @@ func newSocksProxyClient(proxy *url.URL, upstreamDial Dial) (dial Dial, err erro
 	if err != nil {
 		return
 	}
-	dial = Dial(client.Dial).TCPOnly
+	dial = Dial(client.Dial)
+	switch strings.ToUpper(proxy.Scheme) {
+	case "SOCKS", "SOCKS4", "SOCKS4A":
+		dial = dial.TCPOnly
+	}
 	return
 }
