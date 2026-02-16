@@ -44,45 +44,6 @@ func (request *socks4Request) ToPacket() []byte {
 	return packet
 }
 
-type socks4Response struct {
-	status byte
-	port   []byte
-	ip     []byte
-}
-
-func (response *socks4Response) ToPacket() []byte {
-	packet := []byte{0x00, response.status}
-	packet = append(packet, response.port...)
-	packet = append(packet, response.ip...)
-	return packet
-}
-
-func readSocks4Request(conn net.Conn) (request *socks4Request, err error) {
-	reader := bufio.NewReader(conn)
-	request = &socks4Request{}
-	if request.command, err = reader.ReadByte(); err != nil {
-		return
-	}
-	request.port = make([]byte, 2)
-	if _, err = reader.Read(request.port); err != nil {
-		return
-	}
-	request.ip = make([]byte, 4)
-	if _, err = reader.Read(request.ip); err != nil {
-		return
-	}
-	if request.userId, err = reader.ReadBytes(0); err != nil {
-		return
-	}
-	if !request.IsSOCKS4A() {
-		return
-	}
-	if request.fqdn, err = reader.ReadBytes(0); err != nil {
-		return
-	}
-	return
-}
-
 // endregion
 
 // region SOCKS5
@@ -141,12 +102,6 @@ func (request *socks5InitialRequest) ToPacket() []byte {
 	return packet
 }
 
-type socks5InitialResponse []byte
-
-func (response socks5InitialResponse) Length() int   { return len(response) }
-func (response socks5InitialResponse) Version() byte { return response[0] }
-func (response socks5InitialResponse) Auth() byte    { return response[1] }
-
 type socks5Request struct {
 	version byte
 	command byte
@@ -179,22 +134,6 @@ func (a *socks5Addr) Address() string {
 
 func (request *socks5Request) Address() string {
 	return request.socks5Addr.Address()
-}
-
-func readSocks5Request(conn net.Conn) (request *socks5Request, err error) {
-	reader := bufio.NewReader(conn)
-	request = &socks5Request{}
-	if request.version, err = reader.ReadByte(); err != nil {
-		return
-	}
-	if request.command, err = reader.ReadByte(); err != nil {
-		return
-	}
-	if _, err = reader.ReadByte(); err != nil {
-		return
-	}
-	request.socks5Addr, err = readSocks5Addr(reader)
-	return
 }
 
 // endregion

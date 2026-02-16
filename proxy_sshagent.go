@@ -1,5 +1,3 @@
-//go:build !tinygo
-
 package proxyclient
 
 import (
