@@ -7,22 +7,34 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	httpProxy "github.com/chainreactors/proxyclient/http"
 	socksProxy "github.com/chainreactors/proxyclient/socks"
 )
 
+var builtinSchemeInitOnce sync.Once
+
 func init() {
-	RegisterScheme("DIRECT", newDirectProxyClient)
-	RegisterScheme("REJECT", newRejectProxyClient)
-	RegisterScheme("SOCKS", newSocksProxyClient)
-	RegisterScheme("SOCKS4", newSocksProxyClient)
-	RegisterScheme("SOCKS4A", newSocksProxyClient)
-	RegisterScheme("SOCKS5", newSocksProxyClient)
-	RegisterScheme("SOCKS5+TLS", newSocksProxyClient)
-	RegisterScheme("HTTP", newHTTPProxyClient)
-	RegisterScheme("HTTPS", newHTTPProxyClient)
+	InitBuiltinSchemes()
+}
+
+// InitBuiltinSchemes registers the built-in proxy dialer factories.
+// It is safe to call multiple times and is useful for runtimes where
+// package init ordering/state may be unreliable (e.g. some WASM targets).
+func InitBuiltinSchemes() {
+	builtinSchemeInitOnce.Do(func() {
+		RegisterScheme("DIRECT", newDirectProxyClient)
+		RegisterScheme("REJECT", newRejectProxyClient)
+		RegisterScheme("SOCKS", newSocksProxyClient)
+		RegisterScheme("SOCKS4", newSocksProxyClient)
+		RegisterScheme("SOCKS4A", newSocksProxyClient)
+		RegisterScheme("SOCKS5", newSocksProxyClient)
+		RegisterScheme("SOCKS5+TLS", newSocksProxyClient)
+		RegisterScheme("HTTP", newHTTPProxyClient)
+		RegisterScheme("HTTPS", newHTTPProxyClient)
+	})
 }
 
 func newDirectProxyClient(proxy *url.URL, _ Dial) (dial Dial, err error) {

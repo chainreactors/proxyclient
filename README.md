@@ -195,3 +195,15 @@ neoregs://password@example.com:8443/tunnel?interval=200ms&retry=5
 
 - [GameXG/ProxyClient](https://github.com/GameXG/ProxyClient)
 - [RouterScript/ProxyClient](https://github.com/RouterScript/ProxyClient)
+
+## Build tags for optional protocols
+
+To reduce binary size, `SSH` and `Shadowsocks` are optional now.
+
+- Enable `SSH` support: `-tags proxyclient_ssh`
+- Enable `Shadowsocks` support: `-tags proxyclient_shadowsocks`
+- Enable both: `-tags "proxyclient_ssh proxyclient_shadowsocks"`
+
+Default build does not include these two protocol implementations.
+When disabled, `ssh://` and `ss://` are not registered and
+`NewClient` returns `unsupported proxy client.`.

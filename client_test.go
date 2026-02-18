@@ -1,23 +1,32 @@
 package proxyclient
 
 import (
+	"errors"
 	"net/url"
 	"testing"
-	"time"
 )
 
-func TestNewClientWithDial(t *testing.T) {
-	proxy, _ := url.Parse("ss://aes-256-gcm:sangfor@123@127.0.0.1:10086")
-	client, _ := NewClient(proxy)
-	conn, err := client.Dial("tcp", "127.0.0.1:5002")
-	if err != nil {
-		panic(err)
+func TestDialNilGuard(t *testing.T) {
+	var d Dial
+	if _, err := d.Dial("tcp", "127.0.0.1:1"); !errors.Is(err, ErrNilDial) {
+		t.Fatalf("expected ErrNilDial, got %v", err)
 	}
-	_, err = conn.Write([]byte("sadfafdasff"))
+}
+
+func TestInitBuiltinSchemes_Idempotent(t *testing.T) {
+	InitBuiltinSchemes()
+	InitBuiltinSchemes()
+
+	proxy, err := url.Parse("direct://")
 	if err != nil {
-		panic(err)
-		return
+		t.Fatalf("parse proxy url: %v", err)
 	}
 
-	time.Sleep(1 * time.Second)
+	d, err := NewClient(proxy)
+	if err != nil {
+		t.Fatalf("NewClient(direct) failed: %v", err)
+	}
+	if d == nil {
+		t.Fatal("expected non-nil dialer")
+	}
 }

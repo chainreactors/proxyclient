@@ -1,3 +1,5 @@
+//go:build !tinygo && proxyclient_ssh
+
 package proxyclient
 
 import (

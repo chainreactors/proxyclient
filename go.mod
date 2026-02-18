@@ -1,8 +1,6 @@
 module github.com/chainreactors/proxyclient
 
-go 1.21
-
-toolchain go1.23.1
+go 1.20
 
 require (
 	github.com/shadowsocks/go-shadowsocks2 v0.1.5

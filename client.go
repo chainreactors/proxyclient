@@ -14,7 +14,7 @@ type DialFactory func(*url.URL, Dial) (Dial, error)
 
 var DefaultDial = (&net.Dialer{}).DialContext
 var schemes = map[string]DialFactory{}
-
+var ErrNilDial = errors.New("proxyclient: dial function is nil")
 
 func NewClient(proxy *url.URL) (Dial, error) {
 	return NewClientWithDial(proxy, DefaultDial)
@@ -41,7 +41,14 @@ func NewClientWithDial(proxy *url.URL, upstreamDial Dial) (_ Dial, err error) {
 		err = errors.New("unsupported proxy client.")
 		return
 	} else {
-		return schemes[scheme](proxy, upstreamDial)
+		dial, dialErr := schemes[scheme](proxy, upstreamDial)
+		if dialErr != nil {
+			return nil, dialErr
+		}
+		if dial == nil {
+			return nil, ErrNilDial
+		}
+		return dial, nil
 	}
 }
 
@@ -69,10 +76,16 @@ func SupportedSchemes() []string {
 }
 
 func (dial Dial) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	if dial == nil {
+		return nil, ErrNilDial
+	}
 	return dial(ctx, network, address)
 }
 
 func (dial Dial) TCPOnly(ctx context.Context, network, address string) (net.Conn, error) {
+	if dial == nil {
+		return nil, ErrNilDial
+	}
 	switch strings.ToUpper(network) {
 	case "TCP", "TCP4", "TCP6":
 		return dial(ctx, network, address)
@@ -82,5 +95,8 @@ func (dial Dial) TCPOnly(ctx context.Context, network, address string) (net.Conn
 }
 
 func (dial Dial) Dial(network, address string) (net.Conn, error) {
+	if dial == nil {
+		return nil, ErrNilDial
+	}
 	return dial(context.Background(), network, address)
 }

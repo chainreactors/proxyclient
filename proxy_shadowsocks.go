@@ -1,3 +1,5 @@
+//go:build !tinygo && proxyclient_shadowsocks
+
 package proxyclient
 
 import (
