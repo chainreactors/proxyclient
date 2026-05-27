@@ -2,18 +2,19 @@ package loadbalance
 
 import (
 	"context"
-	"github.com/chainreactors/proxyclient"
 	"net"
+	"sync/atomic"
+
+	"github.com/chainreactors/proxyclient"
 )
 
 func NewRoundRobin(proxies []proxyclient.Dial) proxyclient.Dial {
-	index := 0
+	t := NewTracker(proxies)
+	var counter atomic.Int64
+
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
-		if int(index) > len(proxies) {
-			index = 0
-		}
-		dial := proxies[index]
-		index += 1
-		return dial(ctx, network, address)
+		alive := t.AliveIndices()
+		idx := int(counter.Add(1)-1) % len(alive)
+		return t.Dial(ctx, network, address, alive[idx])
 	}
 }

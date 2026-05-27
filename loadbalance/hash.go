@@ -9,9 +9,12 @@ import (
 )
 
 func NewHash(proxies []proxyclient.Dial) proxyclient.Dial {
+	t := NewTracker(proxies)
+
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
+		alive := t.AliveIndices()
 		checksum := crc32.ChecksumIEEE([]byte(address))
-		dial := proxies[int(checksum)%len(proxies)]
-		return dial(ctx, network, address)
+		pick := alive[int(checksum)%len(alive)]
+		return t.Dial(ctx, network, address, pick)
 	}
 }

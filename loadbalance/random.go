@@ -9,8 +9,11 @@ import (
 )
 
 func NewRandom(proxies []proxyclient.Dial) proxyclient.Dial {
+	t := NewTracker(proxies)
+
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
-		dial := proxies[rand.Intn(len(proxies))]
-		return dial(ctx, network, address)
+		alive := t.AliveIndices()
+		pick := alive[rand.Intn(len(alive))]
+		return t.Dial(ctx, network, address, pick)
 	}
 }

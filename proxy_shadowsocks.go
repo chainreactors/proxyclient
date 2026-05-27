@@ -70,26 +70,31 @@ func newShadowsocksProxyClient(proxy *url.URL, upstreamDial Dial) (dial Dial, er
 		}
 	}
 
-	conn, err := upstreamDial(context.Background(), "tcp", proxy.Host)
-	if err != nil {
-		return nil, err
-	}
-	conn = cipher.StreamConn(conn)
+	serverAddr := proxy.Host
 	dial = func(ctx context.Context, network, address string) (net.Conn, error) {
+		conn, err := upstreamDial(ctx, "tcp", serverAddr)
+		if err != nil {
+			return nil, err
+		}
+		conn = cipher.StreamConn(conn)
 		host, port, err := net.SplitHostPort(address)
 		if err != nil {
+			conn.Close()
 			return nil, err
 		}
 		portI, err := strconv.Atoi(port)
 		if err != nil {
+			conn.Close()
 			return nil, err
 		}
 		addr, err := buildSSAddr(host, portI)
 		if err != nil {
+			conn.Close()
 			return nil, err
 		}
 		_, err = conn.Write(addr)
 		if err != nil {
+			conn.Close()
 			return nil, err
 		}
 		return conn, nil
