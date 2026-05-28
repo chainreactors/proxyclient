@@ -1,12 +1,12 @@
 //go:build suo5
 // +build suo5
 
-package extend
+package webshell
 
 import (
 	"context"
 	"github.com/chainreactors/proxyclient"
-	"github.com/chainreactors/proxyclient/suo5"
+	"github.com/chainreactors/proxyclient/webshell/suo5"
 	"net"
 	"net/url"
 )

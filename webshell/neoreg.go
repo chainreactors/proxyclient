@@ -1,12 +1,12 @@
 //go:build neoreg
 // +build neoreg
 
-package extend
+package webshell
 
 import (
 	"context"
 	"github.com/chainreactors/proxyclient"
-	"github.com/chainreactors/proxyclient/neoreg"
+	"github.com/chainreactors/proxyclient/webshell/neoreg"
 	"net"
 	"net/url"
 )
