@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.3
 
 require (
-	github.com/chainreactors/proxyclient v1.0.4-0.20260218115902-74a84a4535b0
+	github.com/chainreactors/proxyclient v1.1.0
 	golang.org/x/crypto v0.47.0
 )
 

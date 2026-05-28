@@ -6,7 +6,7 @@ toolchain go1.24.3
 
 require (
 	github.com/apernet/hysteria/core/v2 v2.9.2
-	github.com/chainreactors/proxyclient v1.0.4-0.20260218115902-74a84a4535b0
+	github.com/chainreactors/proxyclient v1.1.0
 )
 
 require (

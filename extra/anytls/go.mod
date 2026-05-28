@@ -6,7 +6,7 @@ toolchain go1.24.3
 
 require (
 	github.com/anytls/sing-anytls v0.0.11
-	github.com/chainreactors/proxyclient v1.0.4-0.20260218115902-74a84a4535b0
+	github.com/chainreactors/proxyclient v1.1.0
 	github.com/sagernet/sing v0.7.6
 )
 
