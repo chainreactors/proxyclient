@@ -1,7 +1,4 @@
-//go:build neoreg
-// +build neoreg
-
-package neoreg
+package suo5
 
 import (
 	"context"
@@ -12,8 +9,8 @@ import (
 )
 
 func init() {
-	proxyclient.RegisterScheme("NEOREG", NewClient)
-	proxyclient.RegisterScheme("NEOREGS", NewClient)
+	proxyclient.RegisterScheme("SUO5", NewClient)
+	proxyclient.RegisterScheme("SUO5S", NewClient)
 }
 
 func NewClient(proxy *url.URL, upstreamDial proxyclient.Dial) (proxyclient.Dial, error) {
@@ -22,14 +19,14 @@ func NewClient(proxy *url.URL, upstreamDial proxyclient.Dial) (proxyclient.Dial,
 		return nil, err
 	}
 	if upstreamDial != nil {
-		conf.Dial = upstreamDial
+		conf.ProxyClient = upstreamDial
 	}
-	client := &NeoregClient{
+	c := &Suo5Client{
 		Proxy: proxy,
 		Conf:  conf,
 	}
 
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
-		return client.Dial(network, address)
+		return c.Dial(network, address)
 	}, nil
 }
