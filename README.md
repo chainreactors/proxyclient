@@ -102,14 +102,8 @@ dial, _ := proxyclient.NewClient(proxy)
 
 ## 文档
 
-| 文档 | 说明 |
-|------|------|
-| [架构](docs/architecture.md) | 项目结构、核心概念、Module 边界 |
-| [协议配置](docs/protocols.md) | 所有协议的 URL 格式、参数详解 |
-| [Clash 订阅](docs/clash.md) | 订阅解析、过滤、健康检查、负载均衡 |
-| [负载均衡](docs/loadbalance.md) | 策略说明、Adaptive 算法、死节点检测 |
-| [Build Tags](docs/build-tags.md) | 可选协议的编译选项 |
-| [示例](docs/examples.md) | 示例程序和代码片段 |
+- [快速开始](docs/quickstart.md) — 安装、用法、代码示例
+- [架构](docs/architecture.md) — 项目结构、协议参考、负载均衡、Clash 订阅、Build Tags
 
 ## 参考
 
