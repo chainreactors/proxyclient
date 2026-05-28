@@ -130,7 +130,8 @@ go build -tags "suo5 neoreg" .
 
 ```go
 import (
-	_ "github.com/chainreactors/proxyclient/webshell" // 注册 suo5://, neoreg://
+	_ "github.com/chainreactors/proxyclient/webshell/suo5"   // 注册 suo5://, suo5s://
+	_ "github.com/chainreactors/proxyclient/webshell/neoreg" // 注册 neoreg://, neoregs://
 )
 
 proxy, _ := url.Parse("suo5://target.com:8080/tunnel.jsp")
