@@ -30,12 +30,12 @@ proxyclient (核心)
 │   ├── suo5/    (build tag: suo5)
 │   └── neoreg/  (build tag: neoreg)
 │
-├── extra/ — 独立第三方信道 (独立 go module)
-│   ├── trojan/
-│   ├── vmess/ (VMess + VLess)
-│   ├── anytls/
-│   ├── hysteria2/
-│   └── clash/ — Clash 订阅解析 + 节点管理 + 健康检查
+├── extra/ — 独立第三方信道 (每个信道独立 go module)
+│   ├── trojan/    → extra/trojan/go.mod    (零额外依赖)
+│   ├── vmess/     → extra/vmess/go.mod     (sing-vmess)
+│   ├── anytls/    → extra/anytls/go.mod    (sing-anytls)
+│   ├── hysteria2/ → extra/hysteria2/go.mod (hysteria core)
+│   └── clash/     → extra/clash/go.mod     (yaml.v3, 订阅解析+健康检查)
 │
 ├── loadbalance/ — 负载均衡策略
 │   ├── round-robin, random, hash
@@ -53,10 +53,14 @@ proxyclient (核心)
 go get github.com/chainreactors/proxyclient@latest
 ```
 
-引入第三方协议（extra 是独立 module）:
+引入第三方协议（每个信道是独立 module，按需引入）:
 
 ```bash
-go get github.com/chainreactors/proxyclient/extra@latest
+go get github.com/chainreactors/proxyclient/extra/trojan@latest
+go get github.com/chainreactors/proxyclient/extra/vmess@latest
+go get github.com/chainreactors/proxyclient/extra/anytls@latest
+go get github.com/chainreactors/proxyclient/extra/hysteria2@latest
+go get github.com/chainreactors/proxyclient/extra/clash@latest
 ```
 
 ## 快速开始
@@ -107,12 +111,14 @@ dial, err := proxyclient.NewClientChain(proxies)
 
 ### 使用第三方协议 (extra)
 
+每个协议是独立 Go module，按需引入，不会引入无关依赖：
+
 ```go
 import (
 	"github.com/chainreactors/proxyclient"
-	_ "github.com/chainreactors/proxyclient/extra/trojan"   // 注册 trojan://
-	_ "github.com/chainreactors/proxyclient/extra/vmess"    // 注册 vmess://, vless://
-	_ "github.com/chainreactors/proxyclient/extra/anytls"   // 注册 anytls://
+	_ "github.com/chainreactors/proxyclient/extra/trojan"    // 注册 trojan://   (零额外依赖)
+	_ "github.com/chainreactors/proxyclient/extra/vmess"     // 注册 vmess://, vless://
+	_ "github.com/chainreactors/proxyclient/extra/anytls"    // 注册 anytls://
 	_ "github.com/chainreactors/proxyclient/extra/hysteria2" // 注册 hysteria2://, hy2://
 )
 
@@ -410,7 +416,7 @@ go build -tags "proxyclient_ssh proxyclient_shadowsocks suo5 neoreg"
 
 默认编译不包含这些协议。未启用时，对应的 scheme 不会注册，`NewClient` 返回 `unsupported proxy client.`。
 
-extra 模块中的协议（trojan, vmess, anytls, hysteria2, clash）通过 `import _` 引入，无需 build tag。
+extra 中的每个协议是独立 Go module，通过 `import _` 引入，无需 build tag。按需 `go get` 单个协议不会引入其他协议的依赖。
 
 ## 示例程序
 
