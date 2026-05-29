@@ -1,8 +1,6 @@
 module github.com/chainreactors/proxyclient/extra/suo5
 
-go 1.24.0
-
-toolchain go1.24.3
+go 1.25.0
 
 require (
 	github.com/chainreactors/proxyclient v1.1.0
@@ -20,8 +18,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/refraction-networking/utls v1.6.4 // indirect
 	github.com/zema1/rawhttp v0.2.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 )
 
 replace (
