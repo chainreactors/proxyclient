@@ -1,4 +1,4 @@
-package singtun
+package tun
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/chainreactors/proxyclient"
-	tun "github.com/sagernet/sing-tun"
+	sagtun "github.com/sagernet/sing-tun"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/control"
 )
@@ -19,7 +19,7 @@ type Service interface {
 	Err() error
 }
 
-var ErrClosed = errors.New("singtun: service is closed")
+var ErrClosed = errors.New("tun: service is closed")
 
 type lifecycleState uint8
 
@@ -92,14 +92,14 @@ func New(ctx context.Context, dial proxyclient.Dial, options Options) (Service, 
 
 func createRuntime(ctx context.Context, dial proxyclient.Dial, options Options) (*runtimeState, error) {
 	interfaceFinder := control.NewDefaultInterfaceFinder()
-	networkMonitor, err := tun.NewNetworkUpdateMonitor(options.Logger)
+	networkMonitor, err := sagtun.NewNetworkUpdateMonitor(options.Logger)
 	if err != nil {
 		return nil, err
 	}
 	runtime := &runtimeState{
 		networkMonitor: networkMonitor,
 	}
-	interfaceMonitor, err := tun.NewDefaultInterfaceMonitor(networkMonitor, options.Logger, tun.DefaultInterfaceMonitorOptions{
+	interfaceMonitor, err := sagtun.NewDefaultInterfaceMonitor(networkMonitor, options.Logger, sagtun.DefaultInterfaceMonitorOptions{
 		InterfaceFinder: interfaceFinder,
 	})
 	if err != nil {
@@ -109,14 +109,14 @@ func createRuntime(ctx context.Context, dial proxyclient.Dial, options Options) 
 	runtime.interfaceMonitor = interfaceMonitor
 
 	tunOptions := options.tunOptions(interfaceFinder, interfaceMonitor)
-	tunDevice, err := tun.New(tunOptions)
+	tunDevice, err := sagtun.New(tunOptions)
 	if err != nil {
 		runtime.close()
 		return nil, err
 	}
 	runtime.tunDevice = tunDevice
 
-	stack, err := tun.NewStack(options.Stack, tun.StackOptions{
+	stack, err := sagtun.NewStack(options.Stack, sagtun.StackOptions{
 		Context:         ctx,
 		Tun:             tunDevice,
 		TunOptions:      tunOptions,

@@ -1,4 +1,4 @@
-package singtun
+package tun
 
 import (
 	"testing"

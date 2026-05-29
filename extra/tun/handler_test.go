@@ -1,4 +1,4 @@
-package singtun
+package tun
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/chainreactors/proxyclient"
-	tun "github.com/sagernet/sing-tun"
+	sagtun "github.com/sagernet/sing-tun"
 	"github.com/sagernet/sing/common/buf"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
@@ -24,7 +24,7 @@ func TestHandlerPrepareConnection(t *testing.T) {
 	if _, err := h.PrepareConnection(N.NetworkUDP, M.Socksaddr{}, M.Socksaddr{}, nil, 0); err != nil {
 		t.Fatalf("udp should be accepted: %v", err)
 	}
-	if _, err := h.PrepareConnection(N.NetworkICMP, M.Socksaddr{}, M.Socksaddr{}, nil, 0); !errors.Is(err, tun.ErrDrop) {
+	if _, err := h.PrepareConnection(N.NetworkICMP, M.Socksaddr{}, M.Socksaddr{}, nil, 0); !errors.Is(err, sagtun.ErrDrop) {
 		t.Fatalf("icmp should be dropped, got %v", err)
 	}
 }

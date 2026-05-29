@@ -1,11 +1,11 @@
-package singtun
+package tun
 
 import (
 	"fmt"
 	"net/netip"
 	"time"
 
-	tun "github.com/sagernet/sing-tun"
+	sagtun "github.com/sagernet/sing-tun"
 	"github.com/sagernet/sing/common/control"
 	"github.com/sagernet/sing/common/logger"
 )
@@ -38,7 +38,7 @@ type Options struct {
 
 func (o Options) withDefaults() Options {
 	if o.Name == "" {
-		o.Name = tun.CalculateInterfaceName("")
+		o.Name = sagtun.CalculateInterfaceName("")
 	}
 	if o.MTU == 0 {
 		o.MTU = DefaultMTU
@@ -63,12 +63,12 @@ func (o Options) validate() error {
 	case StackGVisor, StackMixed, StackSystem:
 		return nil
 	default:
-		return fmt.Errorf("singtun: unknown stack %q", o.Stack)
+		return fmt.Errorf("tun: unknown stack %q", o.Stack)
 	}
 }
 
-func (o Options) tunOptions(interfaceFinder control.InterfaceFinder, interfaceMonitor tun.DefaultInterfaceMonitor) tun.Options {
-	return tun.Options{
+func (o Options) tunOptions(interfaceFinder control.InterfaceFinder, interfaceMonitor sagtun.DefaultInterfaceMonitor) sagtun.Options {
+	return sagtun.Options{
 		Name:             o.Name,
 		Inet4Address:     o.Inet4,
 		Inet6Address:     o.Inet6,

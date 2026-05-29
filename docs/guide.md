@@ -27,7 +27,7 @@ proxyclient
 │   ├── suo5/         Suo5 Webshell 隧道
 │   ├── neoreg/       Neoreg Webshell 隧道
 │   ├── clash/        Clash 订阅解析 + 负载均衡
-│   └── singtun/      TUN 透明代理入口
+│   └── tun/      TUN 透明代理入口
 │
 ├── loadbalance/ — 负载均衡策略
 └── example/ — 示例程序
@@ -55,7 +55,7 @@ go get github.com/chainreactors/proxyclient/extra/hysteria2@latest
 go get github.com/chainreactors/proxyclient/extra/suo5@latest
 go get github.com/chainreactors/proxyclient/extra/neoreg@latest
 go get github.com/chainreactors/proxyclient/extra/clash@latest
-go get github.com/chainreactors/proxyclient/extra/singtun@latest
+go get github.com/chainreactors/proxyclient/extra/tun@latest
 ```
 
 ## 基本用法
@@ -201,23 +201,37 @@ conn.Read(dnsResponse)
 
 ## TUN 透明代理
 
-`extra/singtun` 基于 `github.com/sagernet/sing-tun` 创建系统 TUN 设备，并把 TUN 中解析出的 TCP/UDP 会话转发到已有的 `proxyclient.Dial`。它是入口 runner，不注册 `tun://` scheme。
+`extra/tun` 基于 `github.com/sagernet/sing-tun` 创建系统 TUN 设备，并把 TUN 中解析出的 TCP/UDP 会话转发到已有的 `proxyclient.Dial`。它是入口 runner，不注册 `tun://` scheme。
+
+联动方式很直接：`proxyclient.NewClient`、`NewClientChain`、`loadbalance` 返回的都是 `proxyclient.Dial`，`extra/tun` 把这个 dialer 当作 TUN 的出站。
 
 ```go
-import "github.com/chainreactors/proxyclient/extra/singtun"
+import "github.com/chainreactors/proxyclient/extra/tun"
 
 dial, _ := proxyclient.NewClient(parseURL("socks5://127.0.0.1:1080"))
-svc, err := singtun.Start(ctx, dial, singtun.Options{})
+svc, err := tun.Start(ctx, dial, tun.Options{})
 if err != nil {
     return err
 }
 defer svc.Close()
 ```
 
+代理链也不需要额外适配：
+
+```go
+proxies := []*url.URL{
+    parseURL("socks5://127.0.0.1:1080"),
+    parseURL("http://127.0.0.1:8080"),
+}
+dial, _ := proxyclient.NewClientChain(proxies)
+svc, _ := tun.Start(ctx, dial, tun.Options{})
+defer svc.Close()
+```
+
 需要显式管理生命周期时，可以先构造、后启动：
 
 ```go
-svc, err := singtun.New(ctx, dial, singtun.Options{})
+svc, err := tun.New(ctx, dial, tun.Options{})
 if err != nil {
     return err
 }
@@ -235,6 +249,15 @@ _ = lastErr
 `New` 只做校验和保存配置，不创建系统资源；`Start` 才创建 TUN runtime，启动失败会清理已创建资源；`Close` 幂等，未启动、已启动、启动失败后都可以安全调用。
 
 默认 stack 是 `gvisor`，需要使用 `with_gvisor` build tag；创建 TUN 设备通常需要管理员/root 权限。默认不自动改系统路由，调用方可自行配置路由或显式启用 `Options.AutoRoute`。
+
+示例程序位于 `extra/tun/example/tun`，`--proxy` 可以传一次，也可以重复传入形成 `proxyclient.NewClientChain`：
+
+```bash
+cd extra/tun
+go build -tags with_gvisor ./example/tun
+./tun -proxy socks5://127.0.0.1:1080
+./tun -proxy socks5://127.0.0.1:1080 -proxy http://127.0.0.1:8080
+```
 
 ## 协议参考
 
@@ -266,7 +289,7 @@ HTTP/HTTPS 额外参数：`tls-domain`, `tls-insecure-skip-verify`, `tls-ca-file
 | Suo5 | `suo5(s)://host:port/path` | — |
 | Neoreg | `neoreg(s)://key@host:port/path` | `timeout`, `retry`, `interval`, `buffer_size` |
 | Clash | `clash://?url=<subscribe-url>` | `strategy`, `country`, `type`, `name`, `ua`, `test` |
-| SingTUN | runner API | `name`, `mtu`, `stack`, `inet4`, `inet6`, `auto-route` |
+| TUN | runner API | `name`, `mtu`, `stack`, `inet4`, `inet6`, `auto-route` |
 
 ## 示例程序
 

@@ -1,4 +1,4 @@
-package singtun
+package tun
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/chainreactors/proxyclient"
-	tun "github.com/sagernet/sing-tun"
+	sagtun "github.com/sagernet/sing-tun"
 	"github.com/sagernet/sing/common"
 	singbufio "github.com/sagernet/sing/common/bufio"
 	M "github.com/sagernet/sing/common/metadata"
@@ -25,14 +25,14 @@ func (h *handler) PrepareConnection(
 	network string,
 	source M.Socksaddr,
 	destination M.Socksaddr,
-	routeContext tun.DirectRouteContext,
+	routeContext sagtun.DirectRouteContext,
 	timeout time.Duration,
-) (tun.DirectRouteDestination, error) {
+) (sagtun.DirectRouteDestination, error) {
 	switch network {
 	case N.NetworkTCP, N.NetworkUDP:
 		return nil, nil
 	default:
-		return nil, tun.ErrDrop
+		return nil, sagtun.ErrDrop
 	}
 }
 

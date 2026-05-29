@@ -1,4 +1,4 @@
-module github.com/chainreactors/proxyclient/extra/singtun
+module github.com/chainreactors/proxyclient/extra/tun
 
 go 1.24.7
 
