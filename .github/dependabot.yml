@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # Root module plus the independently-versioned extra/* protocol modules.
+  - package-ecosystem: gomod
+    directories:
+      - "/"
+      - "/extra/*"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - go
+    commit-message:
+      prefix: deps
+    groups:
+      golang-x:
+        patterns:
+          - "golang.org/x/*"
+      chainreactors:
+        patterns:
+          - "github.com/chainreactors/*"
