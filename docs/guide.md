@@ -26,7 +26,8 @@ proxyclient
 │   ├── hysteria2/    hysteria core (QUIC)
 │   ├── suo5/         Suo5 Webshell 隧道
 │   ├── neoreg/       Neoreg Webshell 隧道
-│   └── clash/        Clash 订阅解析 + 负载均衡
+│   ├── clash/        Clash 订阅解析 + 负载均衡
+│   └── singtun/      TUN 透明代理入口
 │
 ├── loadbalance/ — 负载均衡策略
 └── example/ — 示例程序
@@ -54,6 +55,7 @@ go get github.com/chainreactors/proxyclient/extra/hysteria2@latest
 go get github.com/chainreactors/proxyclient/extra/suo5@latest
 go get github.com/chainreactors/proxyclient/extra/neoreg@latest
 go get github.com/chainreactors/proxyclient/extra/clash@latest
+go get github.com/chainreactors/proxyclient/extra/singtun@latest
 ```
 
 ## 基本用法
@@ -197,6 +199,43 @@ conn.Write(dnsQuery)
 conn.Read(dnsResponse)
 ```
 
+## TUN 透明代理
+
+`extra/singtun` 基于 `github.com/sagernet/sing-tun` 创建系统 TUN 设备，并把 TUN 中解析出的 TCP/UDP 会话转发到已有的 `proxyclient.Dial`。它是入口 runner，不注册 `tun://` scheme。
+
+```go
+import "github.com/chainreactors/proxyclient/extra/singtun"
+
+dial, _ := proxyclient.NewClient(parseURL("socks5://127.0.0.1:1080"))
+svc, err := singtun.Start(ctx, dial, singtun.Options{})
+if err != nil {
+    return err
+}
+defer svc.Close()
+```
+
+需要显式管理生命周期时，可以先构造、后启动：
+
+```go
+svc, err := singtun.New(ctx, dial, singtun.Options{})
+if err != nil {
+    return err
+}
+defer svc.Close()
+
+if err := svc.Start(); err != nil {
+    return err
+}
+running := svc.Running()
+lastErr := svc.Err()
+_ = running
+_ = lastErr
+```
+
+`New` 只做校验和保存配置，不创建系统资源；`Start` 才创建 TUN runtime，启动失败会清理已创建资源；`Close` 幂等，未启动、已启动、启动失败后都可以安全调用。
+
+默认 stack 是 `gvisor`，需要使用 `with_gvisor` build tag；创建 TUN 设备通常需要管理员/root 权限。默认不自动改系统路由，调用方可自行配置路由或显式启用 `Options.AutoRoute`。
+
 ## 协议参考
 
 ### 核心协议
@@ -227,6 +266,7 @@ HTTP/HTTPS 额外参数：`tls-domain`, `tls-insecure-skip-verify`, `tls-ca-file
 | Suo5 | `suo5(s)://host:port/path` | — |
 | Neoreg | `neoreg(s)://key@host:port/path` | `timeout`, `retry`, `interval`, `buffer_size` |
 | Clash | `clash://?url=<subscribe-url>` | `strategy`, `country`, `type`, `name`, `ua`, `test` |
+| SingTUN | runner API | `name`, `mtu`, `stack`, `inet4`, `inet6`, `auto-route` |
 
 ## 示例程序
 

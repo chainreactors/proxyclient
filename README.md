@@ -62,6 +62,7 @@ dial, _ := proxyclient.NewClient(proxy)
 | Suo5 | `extra/suo5` | `suo5(s)://host:port/path` |
 | Neoreg | `extra/neoreg` | `neoreg(s)://key@host:port/path` |
 | Clash 订阅 | `extra/clash` | `clash://?url=<subscribe-url>` |
+| TUN 透明代理 | `extra/singtun` | runner API, 使用 `proxyclient.Dial` 作为出站 |
 
 ## 文档
 
