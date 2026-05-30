@@ -247,13 +247,167 @@ func TestNodeToURL_Hysteria2(t *testing.T) {
 
 func TestNodeToURL_Unknown(t *testing.T) {
 	node := map[string]any{
-		"type":   "wireguard",
+		"type":   "foobar",
 		"server": "example.com",
 		"port":   51820,
 	}
 	_, err := NodeToURL(node)
 	if err == nil {
 		t.Fatal("expected error for unknown type")
+	}
+}
+
+func TestNodeToURL_WireGuard(t *testing.T) {
+	node := map[string]any{
+		"type":        "wireguard",
+		"server":      "wg.example.com",
+		"port":        51820,
+		"private-key": "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY=",
+		"public-key":  "NjU0MzIxenl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmE=",
+		"ip":          "10.0.0.2/32",
+	}
+	u, err := NodeToURL(node)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.Scheme != "wg" {
+		t.Fatalf("expected scheme wg, got %s", u.Scheme)
+	}
+	if u.Hostname() != "wg.example.com" {
+		t.Fatalf("expected host wg.example.com, got %s", u.Hostname())
+	}
+	if u.Port() != "51820" {
+		t.Fatalf("expected port 51820, got %s", u.Port())
+	}
+	if u.Query().Get("private-key") == "" {
+		t.Fatal("expected private-key in query")
+	}
+	if u.Query().Get("public-key") == "" {
+		t.Fatal("expected public-key in query")
+	}
+	if u.Query().Get("address") != "10.0.0.2/32" {
+		t.Fatalf("expected address=10.0.0.2/32, got %s", u.Query().Get("address"))
+	}
+}
+
+func TestNodeToURL_WireGuardWithPeers(t *testing.T) {
+	node := map[string]any{
+		"type":        "wireguard",
+		"server":      "wg.example.com",
+		"port":        51820,
+		"private-key": "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY=",
+		"ip":          "10.0.0.2/32",
+		"ipv6":        "fd00::2/128",
+		"mtu":         1280,
+		"dns":         "1.1.1.1",
+		"peers": []any{
+			map[string]any{
+				"public-key":    "NjU0MzIxenl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmE=",
+				"preshared-key": "cHJlc2hhcmVka2V5MTIzNDU2Nzg5MDEyMzQ1Njc4OTA=",
+				"reserved":      "1,2,3",
+			},
+		},
+	}
+	u, err := NodeToURL(node)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.Query().Get("public-key") == "" {
+		t.Fatal("expected public-key from peers")
+	}
+	if u.Query().Get("preshared-key") == "" {
+		t.Fatal("expected preshared-key from peers")
+	}
+	if u.Query().Get("reserved") != "1,2,3" {
+		t.Fatalf("expected reserved=1,2,3, got %s", u.Query().Get("reserved"))
+	}
+	if u.Query().Get("address") != "10.0.0.2/32,fd00::2/128" {
+		t.Fatalf("expected dual-stack address, got %s", u.Query().Get("address"))
+	}
+	if u.Query().Get("mtu") != "1280" {
+		t.Fatalf("expected mtu=1280, got %s", u.Query().Get("mtu"))
+	}
+	if u.Query().Get("dns") != "1.1.1.1" {
+		t.Fatalf("expected dns=1.1.1.1, got %s", u.Query().Get("dns"))
+	}
+}
+
+func TestNodeToURL_WireGuardMissingFields(t *testing.T) {
+	node := map[string]any{
+		"type":   "wireguard",
+		"server": "example.com",
+		"port":   51820,
+	}
+	_, err := NodeToURL(node)
+	if err == nil {
+		t.Fatal("expected error for wireguard missing required fields")
+	}
+}
+
+func TestParseWireGuardURI(t *testing.T) {
+	uri := "wg://1.2.3.4:51820?private-key=YWJj&public-key=ZGVm&address=10.0.0.2/32#my-wg-node"
+	sub, err := parseURIList([]byte(uri))
+	if err != nil {
+		t.Fatalf("parse URI list: %v", err)
+	}
+	if len(sub.Nodes) != 1 {
+		t.Fatalf("expected 1 node, got %d", len(sub.Nodes))
+	}
+	node := sub.Nodes[0]
+	if node.Type != "wg" {
+		t.Fatalf("expected type wg, got %s", node.Type)
+	}
+	if node.Name != "my-wg-node" {
+		t.Fatalf("expected name my-wg-node, got %s", node.Name)
+	}
+	if !node.Supported {
+		t.Fatal("expected node to be supported")
+	}
+	if node.URL.Scheme != "wg" {
+		t.Fatalf("expected URL scheme wg, got %s", node.URL.Scheme)
+	}
+}
+
+func TestParseWireGuardURIMissingFields(t *testing.T) {
+	uri := "wg://1.2.3.4:51820?private-key=abc"
+	_, err := parseURIList([]byte(uri))
+	if err == nil {
+		t.Fatal("expected error for wireguard URI missing required fields")
+	}
+}
+
+func TestWireGuardYAMLSubscription(t *testing.T) {
+	yaml := `
+proxies:
+  - name: "wg-node"
+    type: wireguard
+    server: wg.example.com
+    port: 51820
+    private-key: "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY="
+    public-key: "NjU0MzIxenl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmE="
+    ip: "10.0.0.2/32"
+    dns: "1.1.1.1"
+    mtu: 1420
+`
+	sub, err := ParseSubscription([]byte(yaml))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if len(sub.Nodes) != 1 {
+		t.Fatalf("expected 1 node, got %d", len(sub.Nodes))
+	}
+	node := sub.Nodes[0]
+	if !node.Supported {
+		t.Fatal("expected wireguard node to be supported")
+	}
+	if node.URL == nil {
+		t.Fatal("expected URL to be set")
+	}
+	if node.URL.Scheme != "wg" {
+		t.Fatalf("expected scheme wg, got %s", node.URL.Scheme)
+	}
+	if node.URL.Query().Get("address") != "10.0.0.2/32" {
+		t.Fatalf("expected address=10.0.0.2/32, got %s", node.URL.Query().Get("address"))
 	}
 }
 

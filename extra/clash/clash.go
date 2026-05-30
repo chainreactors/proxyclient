@@ -164,6 +164,8 @@ func parseURINode(uri string) (ProxyNode, error) {
 		return parseHysteria2URI(u, node)
 	case "anytls":
 		return parseAnyTLSURI(u, node)
+	case "wg", "wireguard":
+		return parseWireGuardURI(u, node)
 	case "socks5", "socks":
 		return parseSocksURI(u, node)
 	case "http", "https":
@@ -321,6 +323,25 @@ func parseAnyTLSURI(u *url.URL, node ProxyNode) (ProxyNode, error) {
 	return node, nil
 }
 
+func parseWireGuardURI(u *url.URL, node ProxyNode) (ProxyNode, error) {
+	node.Server = u.Hostname()
+	node.Port, _ = strconv.Atoi(u.Port())
+	if node.Port == 0 {
+		node.Port = 51820
+	}
+	q := u.Query()
+	if q.Get("private-key") == "" || q.Get("public-key") == "" || q.Get("address") == "" {
+		return node, fmt.Errorf("wireguard: missing required fields (private-key, public-key, address)")
+	}
+	node.URL = &url.URL{
+		Scheme:   "wg",
+		Host:     net.JoinHostPort(node.Server, strconv.Itoa(node.Port)),
+		RawQuery: u.RawQuery,
+	}
+	node.Supported = true
+	return node, nil
+}
+
 func parseYAML(data []byte) (*Subscription, error) {
 	var cfg clashConfig
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
@@ -385,6 +406,8 @@ func NodeToURL(node map[string]any) (*url.URL, error) {
 		return hysteria2NodeToURL(node)
 	case "anytls":
 		return anytlsNodeToURL(node)
+	case "wireguard":
+		return wireguardNodeToURL(node)
 	default:
 		return nil, fmt.Errorf("unsupported proxy type: %s", typ)
 	}
@@ -638,6 +661,78 @@ func anytlsNodeToURL(node map[string]any) (*url.URL, error) {
 	return &url.URL{
 		Scheme:   "anytls",
 		User:     url.User(password),
+		Host:     net.JoinHostPort(server, strconv.Itoa(port)),
+		RawQuery: q.Encode(),
+	}, nil
+}
+
+func wireguardNodeToURL(node map[string]any) (*url.URL, error) {
+	server := getString(node, "server")
+	port := getInt(node, "port")
+	if port == 0 {
+		port = 51820
+	}
+	privateKey := getString(node, "private-key")
+	if server == "" || privateKey == "" {
+		return nil, fmt.Errorf("wireguard: missing required fields")
+	}
+	q := url.Values{}
+	q.Set("private-key", privateKey)
+
+	publicKey := getString(node, "public-key")
+	if publicKey == "" {
+		if peers, ok := node["peers"].([]any); ok && len(peers) > 0 {
+			if peer, ok := peers[0].(map[string]any); ok {
+				publicKey = getString(peer, "public-key")
+				if psk := getString(peer, "preshared-key"); psk != "" {
+					q.Set("preshared-key", psk)
+				}
+				if reserved := getString(peer, "reserved"); reserved != "" {
+					q.Set("reserved", reserved)
+				}
+				if ep := getString(peer, "endpoint"); ep != "" {
+					if h, p, err := net.SplitHostPort(ep); err == nil {
+						server = h
+						if pv, err := strconv.Atoi(p); err == nil {
+							port = pv
+						}
+					}
+				}
+			}
+		}
+	}
+	if publicKey == "" {
+		return nil, fmt.Errorf("wireguard: missing public-key")
+	}
+	q.Set("public-key", publicKey)
+
+	addr := getString(node, "ip")
+	if addr == "" {
+		addr = getString(node, "address")
+	}
+	if ipv6 := getString(node, "ipv6"); ipv6 != "" && addr != "" {
+		addr = addr + "," + ipv6
+	}
+	if addr == "" {
+		return nil, fmt.Errorf("wireguard: missing ip/address")
+	}
+	q.Set("address", addr)
+
+	if dns := getString(node, "dns"); dns != "" {
+		q.Set("dns", dns)
+	}
+	if mtu := getInt(node, "mtu"); mtu > 0 {
+		q.Set("mtu", strconv.Itoa(mtu))
+	}
+	if psk := getString(node, "preshared-key"); psk != "" {
+		q.Set("preshared-key", psk)
+	}
+	if reserved := getString(node, "reserved"); reserved != "" {
+		q.Set("reserved", reserved)
+	}
+
+	return &url.URL{
+		Scheme:   "wg",
 		Host:     net.JoinHostPort(server, strconv.Itoa(port)),
 		RawQuery: q.Encode(),
 	}, nil
