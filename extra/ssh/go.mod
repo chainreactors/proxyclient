@@ -1,14 +1,12 @@
 module github.com/chainreactors/proxyclient/extra/ssh
 
-go 1.24.0
-
-toolchain go1.24.3
+go 1.25.0
 
 require (
 	github.com/chainreactors/proxyclient v1.1.0
-	golang.org/x/crypto v0.47.0
+	golang.org/x/crypto v0.52.0
 )
 
-require golang.org/x/sys v0.41.0 // indirect
+require golang.org/x/sys v0.45.0 // indirect
 
 replace github.com/chainreactors/proxyclient => ../../
