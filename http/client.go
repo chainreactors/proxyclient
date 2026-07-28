@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -15,6 +16,15 @@ type Client struct {
 	Proxy        url.URL
 	TLSConfig    *tls.Config
 	UpstreamDial func(ctx context.Context, network, address string) (net.Conn, error)
+}
+
+type bufferedConn struct {
+	net.Conn
+	reader *bufio.Reader
+}
+
+func (c *bufferedConn) Read(p []byte) (int, error) {
+	return c.reader.Read(p)
 }
 
 func NewClient(proxy url.URL, dial func(ctx context.Context, network, address string) (net.Conn, error)) *Client {
@@ -35,6 +45,7 @@ func (client *Client) Dial(ctx context.Context, network, address string) (conn n
 
 	var request *http.Request
 	var response *http.Response
+	reader := bufio.NewReader(conn)
 
 	if request, err = client.newRequest(address); err != nil {
 		conn.Close()
@@ -44,14 +55,15 @@ func (client *Client) Dial(ctx context.Context, network, address string) (conn n
 		conn.Close()
 		return
 	}
-	if response, err = http.ReadResponse(bufio.NewReader(conn), request); err != nil {
+	if response, err = http.ReadResponse(reader, request); err != nil {
 		conn.Close()
 		return
 	}
 	if response.StatusCode != http.StatusOK {
-		err = conn.Close()
+		conn.Close()
+		return nil, fmt.Errorf("proxy CONNECT failed: %s", response.Status)
 	}
-	return
+	return &bufferedConn{Conn: conn, reader: reader}, nil
 }
 
 func (client *Client) connect(network, address string) (conn net.Conn, err error) {

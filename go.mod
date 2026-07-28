@@ -1,6 +1,6 @@
 module github.com/chainreactors/proxyclient
 
-go 1.17
+go 1.24.0
 
 require github.com/things-go/go-socks5 v0.0.5
 
