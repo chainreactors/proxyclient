@@ -5,7 +5,7 @@ go 1.24.7
 require (
 	github.com/chainreactors/proxyclient v1.1.0
 	github.com/sagernet/sing v0.8.0
-	github.com/sagernet/sing-tun v0.8.9
+	github.com/sagernet/sing-tun v0.8.11
 )
 
 require (
